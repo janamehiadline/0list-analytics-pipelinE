@@ -3,7 +3,6 @@
 ## Null Checks
 
 ### Customers
-
 |                          |   0 |
 |:-------------------------|----:|
 | customer_id              |   0 |
@@ -13,7 +12,6 @@
 | customer_state           |   0 |
 
 ### Orders
-
 |                               |     0 |
 |:------------------------------|------:|
 | order_id                      |     0 |
@@ -36,7 +34,6 @@
 | review_answer_timestamp       |   768 |
 
 ### Order Items
-
 |                     |   0 |
 |:--------------------|----:|
 | order_id            |   0 |
@@ -49,7 +46,6 @@
 | revenue             |   0 |
 
 ### Products
-
 |                            |   0 |
 |:---------------------------|----:|
 | product_id                 |   0 |
@@ -62,17 +58,44 @@
 | product_height_cm          |   0 |
 | product_width_cm           |   0 |
 
+### Sellers
+|                        |   0 |
+|:-----------------------|----:|
+| seller_id              |   0 |
+| seller_zip_code_prefix |   0 |
+| seller_city            |   0 |
+| seller_state           |   0 |
+
+### Geolocation
+|                             |   0 |
+|:----------------------------|----:|
+| geolocation_zip_code_prefix |   0 |
+| geolocation_lat             |   0 |
+| geolocation_lng             |   0 |
+| geolocation_city            |   0 |
+| geolocation_state           |   0 |
+
+### Product Category Translation
+|                               |   0 |
+|:------------------------------|----:|
+| product_category_name         |   0 |
+| product_category_name_english |   0 |
+
+
 ## Duplicate Checks
 
-- Customers duplicates: 0
-- Orders duplicates: 0
-- Order Items duplicates: 0
-- Products duplicates: 0
+- Customers duplicate customer_id: 0
+- Orders duplicate order_id: 551
+- Order Items duplicate (order_id, product_id): 10225
+- Products duplicate product_id: 0
+- Sellers duplicate seller_id: 0
+- Geolocation duplicate zip_code_prefix: 0
+- Category duplicate product_category_name: 0
 
 ## Revenue Validation
 
-Revenue mismatch detected.
+ No negative revenue values found.
 
 ## Delivery Validation
 
-Found 2987 invalid or missing delivery records.
+No negative delivery durations found.
