@@ -75,4 +75,4 @@ Revenue mismatch detected.
 
 ## Delivery Validation
 
- No negative delivery durations found.
+Found 2987 invalid or missing delivery records.
