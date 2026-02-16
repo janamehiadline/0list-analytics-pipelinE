@@ -1,59 +1,52 @@
 import pandas as pd
 
+# =============================
 # Paths
-raw_folder = r"C:\Users\HCES\OneDrive\Desktop\Olist-Analytics-Project\data\raw"
-processed_folder = r"C:\Users\HCES\OneDrive\Desktop\Olist-Analytics-Project\data\processed"
+# =============================
+RAW_PATH = "data/raw/olist_order_items_dataset.csv"
+PROCESSED_PATH = "data/processed/order_items.csv"
 
-# 1️⃣ Load and clean orders dataset
-orders = pd.read_csv(
-    f"{raw_folder}\\olist_orders_dataset.csv",
-    parse_dates=[
-        "order_purchase_timestamp",
-        "order_approved_at",
-        "order_delivered_carrier_date",
-        "order_delivered_customer_date",
-        "order_estimated_delivery_date"
-    ]
-)
-orders['order_status'] = orders['order_status'].str.strip()
+# =============================
+# 1️⃣ Load CSV safely
+# =============================
+df = pd.read_csv(RAW_PATH, quotechar='"', skipinitialspace=True)
 
-#  ✅ Delivery validation: calculate delivery duration and ensure no negatives
-# Keep empty values as is
-orders['delivery_duration_days'] = (orders['order_delivered_customer_date'] - orders['order_purchase_timestamp']).dt.days
-# Flag negative durations
-negative_deliveries = orders[orders['delivery_duration_days'] < 0]
-if not negative_deliveries.empty:
-    print(" Negative delivery durations found. Here are the rows:")
-    print(negative_deliveries)
-else:
-    print("No negative delivery durations found.")
+# =============================
+# 2️⃣ Strip spaces from string columns
+# =============================
+str_cols = ["order_id", "order_item_id", "product_id", "seller_id", "shipping_limit_date"]
 
-# 2️⃣ Load and clean payments dataset
-payments = pd.read_csv(f"{raw_folder}\\olist_order_payments_dataset.csv")
-payments['payment_type'] = payments['payment_type'].str.strip()
-payments['payment_value'] = pd.to_numeric(payments['payment_value'], errors='coerce')
-payments['payment_installments'] = pd.to_numeric(payments['payment_installments'], errors='coerce')
+for col in str_cols:
+    df[col] = df[col].astype(str).str.strip()
 
-# Aggregate multiple payments per order
-payments_agg = payments.groupby('order_id').agg({
-    'payment_type': lambda x: ','.join(x.unique()),
-    'payment_installments': 'sum',
-    'payment_value': 'sum'
-}).reset_index()
+# =============================
+# 3️⃣ Convert numeric columns properly
+# =============================
+num_cols = ["price", "freight_value"]
 
-# 3️⃣ Load and clean reviews dataset
-reviews = pd.read_csv(
-    f"{raw_folder}\\olist_order_reviews_dataset.csv",
-    parse_dates=["review_creation_date", "review_answer_timestamp"]
-)
-reviews['review_comment_title'] = reviews['review_comment_title'].fillna("").str.strip()
-reviews['review_comment_message'] = reviews['review_comment_message'].fillna("").str.strip()
-reviews['review_score'] = pd.to_numeric(reviews['review_score'], errors='coerce')
+for col in num_cols:
+    df[col] = pd.to_numeric(df[col], errors="coerce")
 
-# 4️⃣ Merge datasets
-orders_combined = orders.merge(payments_agg, on='order_id', how='left')
-orders_combined = orders_combined.merge(reviews, on='order_id', how='left')
+# =============================
+# 4️⃣ Drop rows where price or freight_value is NaN
+# =============================
+df = df.dropna(subset=num_cols)
 
-# 5️⃣ Save to CSV
-orders_combined.to_csv(f"{processed_folder}\\orders.csv", index=False)
-print(" All cleaned data merged and saved as 'orders.csv'!")
+# =============================
+# 5️⃣ Remove rows with negative or zero price/freight
+# =============================
+df = df[(df["price"] > 0) & (df["freight_value"] >= 0)]
+
+# =============================
+# 6️⃣ Reset index
+# =============================
+df = df.reset_index(drop=True)
+
+# =============================
+# 7️⃣ Save cleaned CSV
+# =============================
+df.to_csv(PROCESSED_PATH, index=False)
+
+print("✅ Cleaning complete. File saved as order_items.csv")
+
+
