@@ -1,57 +1,71 @@
--
--- 1. CLEANUP: Reset existing tables to avoid duplicate key errors
+-- Create the schema first
+CREATE SCHEMA IF NOT EXISTS analytics;
 
-TRUNCATE TABLE analytics.fact_orders RESTART IDENTITY;
-TRUNCATE TABLE analytics.dim_customers RESTART IDENTITY CASCADE;
-TRUNCATE TABLE analytics.dim_products RESTART IDENTITY CASCADE;
-TRUNCATE TABLE analytics.dim_date RESTART IDENTITY;
+-- Dimension: Customers
+DROP TABLE IF EXISTS analytics.dim_customers CASCADE;
+CREATE TABLE analytics.dim_customers (
+    customer_key SERIAL PRIMARY KEY,
+    customer_id TEXT,
+    customer_unique_id TEXT,
+    customer_city TEXT,
+    customer_state TEXT
+);
 
+-- Dimension: Products
+DROP TABLE IF EXISTS analytics.dim_products CASCADE;
+CREATE TABLE analytics.dim_products (
+    product_key SERIAL PRIMARY KEY,
+    product_id TEXT,
+    product_category_name TEXT
+);
 
--- 2. DIMENSION TABLE: Customers
+-- Dimension: Date
+DROP TABLE IF EXISTS analytics.dim_date CASCADE;
+CREATE TABLE analytics.dim_date (
+    date_key DATE PRIMARY KEY,
+    year INT,
+    month INT,
+    day INT
+);
 
-INSERT INTO analytics.dim_customers (customer_id, customer_unique_id, customer_city, customer_state)
-SELECT DISTINCT customer_id, customer_unique_id, customer_city, customer_state
-FROM staging.stg_customers;
+-- Dimension: Sellers
+DROP TABLE IF EXISTS analytics.dim_sellers CASCADE;
+CREATE TABLE analytics.dim_sellers (
+    seller_key SERIAL PRIMARY KEY,
+    seller_id TEXT,
+    seller_zip_code_prefix INT,
+    seller_city TEXT,
+    seller_state TEXT
+);
 
+-- Dimension: Geolocation
+DROP TABLE IF EXISTS analytics.dim_geolocation CASCADE;
+CREATE TABLE analytics.dim_geolocation (
+    geolocation_key SERIAL PRIMARY KEY,
+    geolocation_zip_code_prefix INT,
+    geolocation_lat NUMERIC,
+    geolocation_lng NUMERIC,
+    geolocation_city TEXT,
+    geolocation_state TEXT
+);
 
--- 3. DIMENSION TABLE: Products
+-- Dimension: Product Category
+DROP TABLE IF EXISTS analytics.dim_product_category CASCADE;
+CREATE TABLE analytics.dim_product_category (
+    category_key SERIAL PRIMARY KEY,
+    product_category_name TEXT,
+    product_category_name_english TEXT
+);
 
-INSERT INTO analytics.dim_products (product_id, product_category_name)
-SELECT DISTINCT product_id, product_category_name
-FROM staging.stg_products;
-
-
--- 4. DIMENSION TABLE: Date
-
-INSERT INTO analytics.dim_date (date_key, year, month, day)
-SELECT DISTINCT
-    DATE(order_purchase_timestamp::TIMESTAMP) AS date_key,
-    EXTRACT(YEAR FROM order_purchase_timestamp::TIMESTAMP),
-    EXTRACT(MONTH FROM order_purchase_timestamp::TIMESTAMP),
-    EXTRACT(DAY FROM order_purchase_timestamp::TIMESTAMP)
-FROM staging.stg_orders
-WHERE order_purchase_timestamp IS NOT NULL;
-
--
--- 5. FACT TABLE: Orders
-
-INSERT INTO analytics.fact_orders (
-    order_id, 
-    customer_key, 
-    product_key, 
-    date_key, 
-    revenue
-)
-SELECT
-    r.order_id,
-    c.customer_key,
-    p.product_key,
-    DATE(o.order_purchase_timestamp::TIMESTAMP),
-    r.revenue
-FROM staging.stg_order_revenue r
-JOIN staging.stg_orders o 
-    ON r.order_id = o.order_id
-JOIN analytics.dim_customers c 
-    ON o.customer_id = c.customer_id
-JOIN analytics.dim_products p 
-    ON r.product_id = p.product_id;
+-- Fact: Orders (Updated to connect to ALL dimensions)
+DROP TABLE IF EXISTS analytics.fact_orders CASCADE;
+CREATE TABLE analytics.fact_orders (
+    order_id TEXT,
+    customer_key INT,
+    product_key INT,
+    seller_key INT,          -- Connects to dim_sellers
+    category_key INT,        -- Connects to dim_product_category
+    geolocation_key INT,     -- Connects to dim_geolocation (via Seller Zip)
+    date_key DATE,
+    revenue NUMERIC
+);
