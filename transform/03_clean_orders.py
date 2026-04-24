@@ -1,52 +1,67 @@
 import pandas as pd
+import os
 
-# =============================
-# Paths
-# =============================
-RAW_PATH = "data/raw/olist_order_items_dataset.csv"
-PROCESSED_PATH = "data/processed/order_items.csv"
+raw_folder = os.path.join("data", "raw")
+processed_folder = os.path.join("data", "processed")
 
-# =============================
-# 1️⃣ Load CSV safely
-# =============================
-df = pd.read_csv(RAW_PATH, quotechar='"', skipinitialspace=True)
+os.makedirs(processed_folder, exist_ok=True)
 
-# =============================
-# 2️⃣ Strip spaces from string columns
-# =============================
-str_cols = ["order_id", "order_item_id", "product_id", "seller_id", "shipping_limit_date"]
-
-for col in str_cols:
-    df[col] = df[col].astype(str).str.strip()
-
-# =============================
-# 3️⃣ Convert numeric columns properly
-# =============================
-num_cols = ["price", "freight_value"]
-
-for col in num_cols:
-    df[col] = pd.to_numeric(df[col], errors="coerce")
-
-# =============================
-# 4️⃣ Drop rows where price or freight_value is NaN
-# =============================
-df = df.dropna(subset=num_cols)
-
-# =============================
-# 5️⃣ Remove rows with negative or zero price/freight
-# =============================
-df = df[(df["price"] > 0) & (df["freight_value"] >= 0)]
-
-# =============================
-# 6️⃣ Reset index
-# =============================
-df = df.reset_index(drop=True)
-
-# =============================
-# 7️⃣ Save cleaned CSV
-# =============================
-df.to_csv(PROCESSED_PATH, index=False)
-
-print("✅ Cleaning complete. File saved as order_items.csv")
+orders = pd.read_csv(
+    os.path.join(raw_folder, "olist_orders_dataset.csv"),
+    parse_dates=[
+        "order_purchase_timestamp",
+        "order_approved_at",
+        "order_delivered_carrier_date",
+        "order_delivered_customer_date",
+        "order_estimated_delivery_date"
+    ]
+)
+orders['order_status'] = orders['order_status'].str.strip()
 
 
+orders['delivery_duration_days'] = (
+    orders['order_delivered_customer_date'] - orders['order_purchase_timestamp']
+).dt.days
+
+negative_deliveries = orders[orders['delivery_duration_days'] < 0]
+if not negative_deliveries.empty:
+    print(" Negative delivery durations found. Here are the rows:")
+    print(negative_deliveries)
+else:
+    print(" No negative delivery durations found.")
+
+payments = pd.read_csv(
+    os.path.join(raw_folder, "olist_order_payments_dataset.csv")
+)
+payments['payment_type'] = payments['payment_type'].str.strip()
+payments['payment_value'] = pd.to_numeric(payments['payment_value'], errors='coerce')
+payments['payment_installments'] = pd.to_numeric(
+    payments['payment_installments'], errors='coerce'
+)
+
+
+payments_agg = payments.groupby('order_id').agg({
+    'payment_type': lambda x: ','.join(x.unique()),
+    'payment_installments': 'sum',
+    'payment_value': 'sum'
+}).reset_index()
+
+
+reviews = pd.read_csv(
+    os.path.join(raw_folder, "olist_order_reviews_dataset.csv"),
+    parse_dates=["review_creation_date", "review_answer_timestamp"]
+)
+reviews['review_comment_title'] = reviews['review_comment_title'].fillna("").str.strip()
+reviews['review_comment_message'] = reviews['review_comment_message'].fillna("").str.strip()
+reviews['review_score'] = pd.to_numeric(reviews['review_score'], errors='coerce')
+
+orders_combined = orders.merge(payments_agg, on='order_id', how='left')
+orders_combined = orders_combined.merge(reviews, on='order_id', how='left')
+
+
+orders_combined.to_csv(
+    os.path.join(processed_folder, "orders.csv"),
+    index=False
+)
+
+print("All cleaned data merged and saved as 'orders.csv'!")

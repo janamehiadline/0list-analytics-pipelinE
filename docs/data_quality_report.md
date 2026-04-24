@@ -50,8 +50,8 @@
 |:---------------------------|----:|
 | product_id                 |   0 |
 | product_category_name      |   0 |
-| product_name_lenght        |   0 |
-| product_description_lenght |   0 |
+| product_name_lenght        | 609 |
+| product_description_lenght | 609 |
 | product_photos_qty         |   0 |
 | product_weight_g           |   0 |
 | product_length_cm          |   0 |

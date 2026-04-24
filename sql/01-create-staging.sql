@@ -38,29 +38,30 @@ CREATE TABLE staging.stg_orders (
     order_estimated_delivery_date TIMESTAMP,
     delivery_duration_days NUMERIC,
     payment_type TEXT,
-    payment_installments NUMERIC,  -- <--- CHANGED TO NUMERIC
+    payment_installments NUMERIC,
     payment_value NUMERIC,
     review_id TEXT,
-    review_score NUMERIC
-    review_comment_title TEXT,
+    review_score NUMERIC,      -- <--- THERE MUST BE A COMMA HERE
+    review_comment_title TEXT, -- This is where the error points
     review_comment_message TEXT,
     review_creation_date TIMESTAMP,
     review_answer_timestamp TIMESTAMP
 );
 
 -- 4. Order Revenue 
+-- 4. Order Revenue 
 DROP TABLE IF EXISTS staging.stg_order_revenue CASCADE;
-CREATE TABLE staging.stg_order_revenue (
-    order_id TEXT,
-    order_item_id INT,
-    product_id TEXT,
-    seller_id TEXT,
-    shipping_limit_date TIMESTAMP,
-    price NUMERIC,
-    freight_value NUMERIC,
-    revenue NUMERIC
-);
 
+CREATE TABLE staging.stg_order_revenue (
+    order_item_id INT,          -- <--- THIS MUST BE FIRST
+    order_id VARCHAR(50),       -- <--- THIS MUST BE SECOND
+    product_id VARCHAR(50),
+    seller_id VARCHAR(50),
+    shipping_limit_date TIMESTAMP,
+    price DECIMAL(10, 2),
+    freight_value DECIMAL(10, 2),
+    revenue DECIMAL(10, 2)
+);
 -- 5. Geolocation
 DROP TABLE IF EXISTS staging.stg_geolocation CASCADE;
 CREATE TABLE staging.stg_geolocation (

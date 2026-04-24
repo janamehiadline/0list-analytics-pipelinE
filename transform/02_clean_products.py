@@ -23,11 +23,16 @@ for col in num_cols:
 df = df.dropna(subset=num_cols, how='all')
 
 # 5️⃣ Fill missing category names with 'unknown'
-df["product_category_name"] = df["product_category_name"].replace({'nan': 'unknown'})
+# Fix: Also replace empty strings, not just 'nan'
+df["product_category_name"] = df["product_category_name"].fillna('unknown').replace('nan', 'unknown').replace('', 'unknown')
 
-# 6️⃣ Remove rows with impossible values (zero or negative)
+# FIX: Fill missing photo counts with 0 (products can have no photos)
+df["product_photos_qty"] = df["product_photos_qty"].fillna(0)
+
+# 6️⃣ Remove rows with impossible values
+# CHANGE: Removed check for 'photos_qty' and text lengths.
+# We only check physical properties (Weight & Dimensions) to ensure it's a real item.
 df = df[
-    (df["product_photos_qty"] > 0) &
     (df["product_weight_g"] > 0) &
     (df["product_length_cm"] > 0) &
     (df["product_height_cm"] > 0) &
@@ -37,10 +42,8 @@ df = df[
 # 7️⃣ Reset index
 df = df.reset_index(drop=True)
 
-# 8️⃣ Save cleaned CSV in the processed folder as products.csv
+# 8️⃣ Save cleaned CSV
 cleaned_path = r"C:\Users\HCES\OneDrive\Desktop\Olist-Analytics-Project\data\processed\products.csv"
 df.to_csv(cleaned_path, index=False)
 
 print(f"Cleaned products CSV saved to: {cleaned_path}")
-
-

@@ -58,5 +58,5 @@ df["customer_zip_code_prefix"] = df["customer_zip_code_prefix"].astype(str)
 # =============================
 df.to_csv(PROCESSED_PATH, index=False)
 
-print("✅ Cleaning complete. File saved as customers.csv")
+print(" Cleaning complete. File saved as customers.csv")
 
